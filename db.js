@@ -10,7 +10,7 @@ const User = new Schema({
 })
 
 const Todos = new Schema({
-    description : String,
+    title : String,
     done : Boolean,
     userId : ObjectId
 })

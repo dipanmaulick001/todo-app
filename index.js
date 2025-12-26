@@ -1,7 +1,8 @@
 const express =require("express");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = "asdbjsdnsbjd1234";
-const {UserModel , TodoModel} = require('./db'); //importing from db.js
+const {UserModel , TodosModel} = require('./db'); //importing from db.js
+const {auth , JWT_SECRET} = require("./auth")
 const mongoose = require("mongoose");
 
 mongoose.connect("mongodb+srv://dip25:33nT3qCIU6ZEUPD5@cluster0.dgnaxig.mongodb.net/todo-app");
@@ -36,7 +37,7 @@ app.post("/login" , async function(req ,res){
 
     if (user){
         const token = jwt.sign({
-            id : user._id
+            id : user._id.toString()
         },JWT_SECRET)
         res.json({
             toekn : token
@@ -49,12 +50,35 @@ app.post("/login" , async function(req ,res){
 
 })
 
-app.post("/todo" , function(req, res){
+app.post("/todo" ,auth, async function(req, res){
+    const userId = req.userId;
+    const title = req.body.title;
+    const done = req.body.done;
+
+    await TodosModel.create({
+        title,
+        userId,
+        done
+    })
+
+    res.json({
+        message : "Todo created"
+    })
 
 })
 
-app.get("/todos" , function(req ,res){
+app.get("/todos" , auth, async function(req ,res){
+    const userId = req.userId;
+    const todos = await TodosModel.find({
+            userId : userId
+    })
+
+    res.json({
+        todos
+    })
 
 })
+
+
 
 app.listen(3000);
