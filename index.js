@@ -5,6 +5,7 @@ const JWT_SECRET = "asdbjsdnsbjd1234";
 const {UserModel , TodosModel} = require('./db'); //importing from db.js
 const {auth , JWT_SECRET} = require("./auth")
 const mongoose = require("mongoose");
+const {z} = require("zod");
 
 mongoose.connect("mongodb+srv://dip25:33nT3qCIU6ZEUPD5@cluster0.dgnaxig.mongodb.net/todo-app");
 
@@ -12,6 +13,30 @@ const app = express();
 app.use(express.json());
 
 app.post("/signup" , async function(req,res){
+    //input validation
+    const requiredBody = z.object({
+        email : z.email().min(6).max(100),
+        name : z.string().min(3).max(100),
+        password : z.string().min(5).max(25)
+    })
+
+    //const parsedData = requiredBody.parse(req.body); ->throws error if no success
+    const parsedDataWithSuccess = requiredBody.safeParse(req.body); //returns {data,success}
+        /*{
+            success : true|false,
+            data : {},
+            error : []
+        }*/
+
+    if(!parsedDataWithSuccess.success){
+            res.json({
+                message : "incorrect format",
+                error : parsedDataWithSuccess.error //exact error is returned
+            })
+            return
+    }
+
+    //if format match
     const email = req.body.email;
     const password = req.body.password;
     const name = req.body.name;
