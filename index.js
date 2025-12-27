@@ -1,3 +1,4 @@
+const bcrypt = require("bcrypt");
 const express =require("express");
 const jwt = require("jsonwebtoken");
 const JWT_SECRET = "asdbjsdnsbjd1234";
@@ -15,38 +16,64 @@ app.post("/signup" , async function(req,res){
     const password = req.body.password;
     const name = req.body.name;
 
-    await UserModel.create({       //async , returns promise since it goes to the db in mumbai
-        email : email,
-        password : password,
-        name : name
-    })
+    let errorThrown = false;
+    try{
+        //we take pw from user bt in db, we store hashed pw
+        const hashedPassword = await bcrypt.hash(password , 5 ) //promisified approach, no 3rd arg
 
-    res.json({
-        message : "Account created."
-    })
+        await UserModel.create({       //async , returns promise since it goes to the db in mumbai
+            email : email,
+            password : hashedPassword,
+            name : name
+        })
+
+      
+    }catch(e){
+        res.json({
+            message : "user already exists"
+        })
+        errorThrown = true;
+    }
+
+    if(!errorThrown){
+        res.json({
+            message :"Account created"
+        })
+    }
+    //we can have only one res in a req
 })
 
 app.post("/login" , async function(req ,res){
     const email = req.body.email;
     const password = req.body.password;
 
-    const user = await UserModel.findOne({   //all db calls are async
-        email : email,
-        password : password
+    const response = await UserModel.findOne({   //all db calls are async
+        email : email
     })
 
-    if (user){
+    if (!response){
+        res.status(403).json({
+            message : "User doesnt exist in the db"
+        })
+        return
+    }
+    //if email matches , then we compare the passwords
+
+    const passwordMatch = await bcrypt.compare(password , response.password);
+
+    if(passwordMatch){
         const token = jwt.sign({
-            id : user._id.toString()
-        },JWT_SECRET)
-        res.json({
-            toekn : token
+            id : response._id.toString()
+        },JWT_SECRET);
+        return res.json({
+            token : token
         })
     }else{
-        return res.status(401).json({
-            message : "Invalid credentials"
+        res.status(403).json({
+            message : "incorrect credentials"
         })
     }
+
 
 })
 
